@@ -69,8 +69,8 @@ export default function JobListings() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedLocation, setSelectedLocation] = useState('')
-  const [selectedJobType, setSelectedJobType] = useState('')
+  const [selectedLocation, setSelectedLocation] = useState('all')
+  const [selectedJobType, setSelectedJobType] = useState('all')
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([])
   const [minRate, setMinRate] = useState('')
   const [maxRate, setMaxRate] = useState('')
@@ -201,8 +201,8 @@ export default function JobListings() {
                          job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.location.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesLocation = !selectedLocation || job.location === selectedLocation
-    const matchesJobType = !selectedJobType || job.jobType === selectedJobType
+    const matchesLocation = !selectedLocation || selectedLocation === 'all' || job.location === selectedLocation
+    const matchesJobType = !selectedJobType || selectedJobType === 'all' || job.jobType === selectedJobType
     const matchesSpecializations = selectedSpecializations.length === 0 || 
                                   selectedSpecializations.some(spec => job.specializationsNeeded.includes(spec))
     
@@ -244,8 +244,8 @@ export default function JobListings() {
 
   const clearFilters = () => {
     setSearchTerm('')
-    setSelectedLocation('')
-    setSelectedJobType('')
+    setSelectedLocation('all')
+    setSelectedJobType('all')
     setSelectedSpecializations([])
     setMinRate('')
     setMaxRate('')
@@ -277,7 +277,7 @@ export default function JobListings() {
             <SelectValue placeholder="Any location" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Any location</SelectItem>
+            <SelectItem value="all">Any location</SelectItem>
             {locations.map(location => (
               <SelectItem key={location} value={location}>{location}</SelectItem>
             ))}
@@ -292,7 +292,7 @@ export default function JobListings() {
             <SelectValue placeholder="Any type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Any type</SelectItem>
+            <SelectItem value="all">Any type</SelectItem>
             {jobTypes.map(type => (
               <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
             ))}
@@ -399,15 +399,15 @@ export default function JobListings() {
           </div>
 
           {/* Active Filters */}
-          {(selectedLocation || selectedJobType || selectedSpecializations.length > 0 || minRate || maxRate) && (
+          {(selectedLocation && selectedLocation !== 'all' || selectedJobType && selectedJobType !== 'all' || selectedSpecializations.length > 0 || minRate || maxRate) && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {selectedLocation && (
-                <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedLocation('')}>
+              {selectedLocation && selectedLocation !== 'all' && (
+                <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedLocation('all')}>
                   {selectedLocation} ×
                 </Badge>
               )}
-              {selectedJobType && (
-                <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedJobType('')}>
+              {selectedJobType && selectedJobType !== 'all' && (
+                <Badge variant="secondary" className="cursor-pointer" onClick={() => setSelectedJobType('all')}>
                   {jobTypes.find(t => t.value === selectedJobType)?.label} ×
                 </Badge>
               )}
