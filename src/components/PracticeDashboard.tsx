@@ -89,11 +89,18 @@ export default function PracticeDashboard({ user }: PracticeDashboardProps) {
       })
 
       // Load applications for practice jobs
-      const applicationsData = await blink.db.applications.list({
-        where: { practiceId: user.id },
-        orderBy: { createdAt: 'desc' },
-        limit: 20
+      // First get jobs by this practice, then get applications for those jobs
+      const practiceJobs = await blink.db.jobs.list({
+        where: { practiceId: user.id }
       })
+      
+      const practiceJobIds = practiceJobs.map(job => job.id)
+      
+      const applicationsData = practiceJobIds.length > 0 ? await blink.db.applications.list({
+        where: { jobId: { in: practiceJobIds } },
+        orderBy: { appliedAt: 'desc' },
+        limit: 20
+      }) : []
 
       // Get job details for applications
       const jobIds = [...new Set(applicationsData.map(app => app.jobId))]
@@ -108,11 +115,11 @@ export default function PracticeDashboard({ user }: PracticeDashboardProps) {
       )
 
       // Get applicant details
-      const applicantIds = [...new Set(applicationsData.map(app => app.applicantId))]
+      const applicantIds = [...new Set(applicationsData.map(app => app.dentistId))]
       const applicantDetails = await Promise.all(
-        applicantIds.map(async (applicantId) => {
+        applicantIds.map(async (dentistId) => {
           const applicant = await blink.db.users.list({
-            where: { userId: applicantId },
+            where: { userId: dentistId },
             limit: 1
           })
           return applicant[0]
@@ -123,7 +130,7 @@ export default function PracticeDashboard({ user }: PracticeDashboardProps) {
       const enrichedApplications = applicationsData.map(app => ({
         ...app,
         job: jobDetails.find(job => job?.id === app.jobId),
-        applicant: applicantDetails.find(applicant => applicant?.userId === app.applicantId)
+        applicant: applicantDetails.find(applicant => applicant?.userId === app.dentistId)
       }))
 
       setJobs(jobsData)
@@ -162,7 +169,7 @@ export default function PracticeDashboard({ user }: PracticeDashboardProps) {
       if (application) {
         await blink.db.notifications.create({
           id: `notif_${Date.now()}`,
-          userId: application.applicantId,
+          userId: application.dentistId,
           type: 'application_response',
           title: `Application ${action === 'accept' ? 'Accepted' : 'Rejected'}`,
           content: `Your application for "${application.job?.title}" has been ${action}ed.`,
@@ -451,7 +458,7 @@ export default function PracticeDashboard({ user }: PracticeDashboardProps) {
                               >
                                 Reject
                               </Button>
-                              <Link to={`/messages?conversation=${application.applicantId}`}>
+                              <Link to={`/messages?conversation=${application.dentistId}`}>
                                 <Button variant="outline" className="w-full">
                                   <MessageSquare className="w-4 h-4 mr-2" />
                                   Message

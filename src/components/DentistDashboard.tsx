@@ -98,8 +98,8 @@ export default function DentistDashboard({ user }: DentistDashboardProps) {
       
       // Load applications by this dentist
       const applicationsData = await blink.db.applications.list({
-        where: { applicantId: user.id },
-        orderBy: { createdAt: 'desc' },
+        where: { dentistId: user.id },
+        orderBy: { appliedAt: 'desc' },
         limit: 20
       })
 
@@ -129,8 +129,8 @@ export default function DentistDashboard({ user }: DentistDashboardProps) {
         })
       )
 
-      // Get practice details for applications
-      const practiceIds = [...new Set(applicationsData.map(app => app.practiceId))]
+      // Get practice details for applications (from jobs table)
+      const practiceIds = [...new Set(jobDetails.filter(job => job).map(job => job.practiceId))]
       const practiceDetails = await Promise.all(
         practiceIds.map(async (practiceId) => {
           const practice = await blink.db.users.list({
@@ -142,11 +142,15 @@ export default function DentistDashboard({ user }: DentistDashboardProps) {
       )
 
       // Combine application data with job and practice details
-      const enrichedApplications = applicationsData.map(app => ({
-        ...app,
-        job: jobDetails.find(job => job?.id === app.jobId),
-        practice: practiceDetails.find(practice => practice?.userId === app.practiceId)
-      }))
+      const enrichedApplications = applicationsData.map(app => {
+        const job = jobDetails.find(job => job?.id === app.jobId)
+        const practice = practiceDetails.find(practice => practice?.userId === job?.practiceId)
+        return {
+          ...app,
+          job,
+          practice
+        }
+      })
 
       setApplications(enrichedApplications)
       setNotifications(notificationsData)
